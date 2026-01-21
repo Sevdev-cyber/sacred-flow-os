@@ -83,12 +83,12 @@ const SkillTree: React.FC<SkillTreeProps> = ({ skills, onUnlock, vibration }) =>
 
   const filteredSkills = skills.filter(s => {
     if (!searchQuery) return true;
-    return s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-           s.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.description.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   return (
-    <div className="h-full w-full relative overflow-hidden bg-[#020402] select-none cursor-move"
+    <div className="h-full w-full relative overflow-hidden bg-[#020402] select-none cursor-move min-h-[80vh]"
       ref={containerRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -103,16 +103,16 @@ const SkillTree: React.FC<SkillTreeProps> = ({ skills, onUnlock, vibration }) =>
           </h2>
           <p className="text-xs text-slate-400">Drag to explore the constellation.</p>
         </div>
-        
+
         <div className="flex flex-col items-end gap-3 pointer-events-auto">
           <div className="bg-amber-900/20 border border-amber-500/30 px-6 py-3 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.15)] flex items-center gap-3">
-             <span className="text-amber-400 font-bold uppercase text-[10px] tracking-[0.2em]">Vibration (XP)</span>
-             <span className="text-white text-2xl font-black">{vibration}</span>
+            <span className="text-amber-400 font-bold uppercase text-[10px] tracking-[0.2em]">Vibration (XP)</span>
+            <span className="text-white text-2xl font-black">{vibration}</span>
           </div>
-          
+
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input 
+            <input
               type="text"
               placeholder="Search constellations..."
               value={searchQuery}
@@ -124,17 +124,17 @@ const SkillTree: React.FC<SkillTreeProps> = ({ skills, onUnlock, vibration }) =>
       </div>
 
       {/* Canvas Layer */}
-      <div 
+      <div
         className="absolute top-0 left-0 transition-transform duration-75 ease-out"
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
       >
         {/* Background Grid */}
-        <div 
-            className="absolute inset-[-4000px] opacity-10 pointer-events-none"
-            style={{ 
-                backgroundImage: 'radial-gradient(circle, #333 1px, transparent 1px)', 
-                backgroundSize: '50px 50px' 
-            }} 
+        <div
+          className="absolute inset-[-4000px] opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #333 1px, transparent 1px)',
+            backgroundSize: '50px 50px'
+          }}
         />
 
         <svg className="absolute top-[-4000px] left-[-4000px] w-[8000px] h-[8000px] pointer-events-none overflow-visible">
@@ -165,15 +165,15 @@ const SkillTree: React.FC<SkillTreeProps> = ({ skills, onUnlock, vibration }) =>
         {skills.map(skill => {
           const visible = isVisible(skill);
           const isMatch = searchQuery && (
-            skill.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            skill.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             skill.description.toLowerCase().includes(searchQuery.toLowerCase())
           );
-          
+
           if (!visible && !isMatch) return null;
 
           // If searching, dim non-matches. If visible, full opacity. If search match but not visible (fog), show ghost.
           let opacity = visible ? 1 : 0;
-          if (isMatch) opacity = 0.8; 
+          if (isMatch) opacity = 0.8;
 
           const size = skill.type === 'KEYSTONE' ? 80 : skill.type === 'MAJOR' ? 56 : 40;
 
@@ -193,60 +193,59 @@ const SkillTree: React.FC<SkillTreeProps> = ({ skills, onUnlock, vibration }) =>
               <button
                 disabled={skill.unlocked || vibration < skill.cost || (!visible && !isMatch)}
                 onClick={(e) => { e.stopPropagation(); onUnlock(skill.id); }}
-                className={`relative rounded-full flex items-center justify-center transition-all duration-500 ${
-                   skill.unlocked 
-                   ? 'bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.6)] scale-110'
-                   : vibration >= skill.cost && visible
-                     ? 'bg-black border-2 border-amber-500/50 text-amber-500 hover:scale-110 hover:bg-amber-500 hover:text-black cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                     : 'bg-slate-900 border border-slate-700 text-slate-700'
-                } ${isMatch && !visible ? 'animate-pulse border-white/50 bg-white/10' : ''}`}
+                className={`relative rounded-full flex items-center justify-center transition-all duration-500 ${skill.unlocked
+                    ? 'bg-emerald-500 text-black shadow-[0_0_30px_rgba(16,185,129,0.6)] scale-110'
+                    : vibration >= skill.cost && visible
+                      ? 'bg-black border-2 border-amber-500/50 text-amber-500 hover:scale-110 hover:bg-amber-500 hover:text-black cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      : 'bg-slate-900 border border-slate-700 text-slate-700'
+                  } ${isMatch && !visible ? 'animate-pulse border-white/50 bg-white/10' : ''}`}
                 style={{ width: '100%', height: '100%' }}
               >
                 {getIcon(skill.icon, skill.type === 'KEYSTONE' ? 'w-8 h-8' : 'w-5 h-5')}
-                
+
                 {/* Search Pulse Ring */}
                 {isMatch && (
-                    <div className="absolute inset-0 rounded-full border-2 border-white animate-ping" />
+                  <div className="absolute inset-0 rounded-full border-2 border-white animate-ping" />
                 )}
               </button>
 
               {/* Tooltip */}
               <div className="absolute top-full mt-4 bg-black/90 border border-white/10 p-4 rounded-xl w-64 opacity-0 group-hover/node:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-md">
-                 <div className="flex justify-between items-start mb-2">
-                    <h4 className={`font-black uppercase tracking-widest text-sm ${skill.unlocked ? 'text-emerald-400' : 'text-white'}`}>
-                        {skill.name}
-                    </h4>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 uppercase">
-                        {skill.type}
-                    </span>
-                 </div>
-                 <p className="text-xs text-slate-400 italic mb-3">{skill.description}</p>
-                 
-                 {skill.tradeOff && (
-                     <div className="bg-red-900/20 border border-red-500/30 p-2 rounded mb-3">
-                         <p className="text-[10px] text-red-400 font-bold uppercase mb-1">Warning: Trade-off</p>
-                         <p className="text-xs text-red-200">{skill.tradeOff}</p>
-                     </div>
-                 )}
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className={`font-black uppercase tracking-widest text-sm ${skill.unlocked ? 'text-emerald-400' : 'text-white'}`}>
+                    {skill.name}
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 uppercase">
+                    {skill.type}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 italic mb-3">{skill.description}</p>
 
-                 {skill.stats && (
-                    <div className="space-y-1 border-t border-white/10 pt-2">
-                        {Object.entries(skill.stats).map(([k, v]) => (
-                            <div key={k} className="flex justify-between text-[10px] uppercase font-bold text-blue-300">
-                                <span>{k}</span>
-                                <span>+{v}</span>
-                            </div>
-                        ))}
-                    </div>
-                 )}
-                 
-                 {!skill.unlocked && (
-                     <div className="mt-3 text-right">
-                         <span className={`font-black text-xs ${vibration >= skill.cost ? 'text-amber-400' : 'text-red-500'}`}>
-                             COST: {skill.cost} VIBRATION
-                         </span>
-                     </div>
-                 )}
+                {skill.tradeOff && (
+                  <div className="bg-red-900/20 border border-red-500/30 p-2 rounded mb-3">
+                    <p className="text-[10px] text-red-400 font-bold uppercase mb-1">Warning: Trade-off</p>
+                    <p className="text-xs text-red-200">{skill.tradeOff}</p>
+                  </div>
+                )}
+
+                {skill.stats && (
+                  <div className="space-y-1 border-t border-white/10 pt-2">
+                    {Object.entries(skill.stats).map(([k, v]) => (
+                      <div key={k} className="flex justify-between text-[10px] uppercase font-bold text-blue-300">
+                        <span>{k}</span>
+                        <span>+{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!skill.unlocked && (
+                  <div className="mt-3 text-right">
+                    <span className={`font-black text-xs ${vibration >= skill.cost ? 'text-amber-400' : 'text-red-500'}`}>
+                      COST: {skill.cost} VIBRATION
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );
