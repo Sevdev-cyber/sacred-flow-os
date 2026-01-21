@@ -51,7 +51,16 @@ export const INITIAL_CHARACTER: Character = {
   },
   transmutationCount: 0,
   goldRushActive: false,
-  embers: 0
+  embers: 0,
+  // Phase 1: Feature expansion initial values
+  lastPotionUse: null,
+  microQuestActive: false,
+  microQuestTask: null,
+  microQuestEndTime: null,
+  nebulaIdeas: [],
+  worryLog: [],
+  resilienceXp: 0,
+  completedBossTasks: []
 };
 
 // THE CELESTIAL LATTICE
@@ -63,82 +72,82 @@ export const INITIAL_CHARACTER: Character = {
 
 export const INITIAL_SKILLS: SkillNode[] = [
   // --- CENTER: THE SOURCE ---
-  { 
-    id: 'source', name: 'The Source', description: 'Your core consciousness.', icon: 'Sparkles', type: 'MAJOR', 
-    x: 0, y: 0, unlocked: true, cost: 0, stats: { focus: 1, efficiency: 1 } 
+  {
+    id: 'source', name: 'The Source', description: 'Your core consciousness.', icon: 'Sparkles', type: 'MAJOR',
+    x: 0, y: 0, unlocked: true, cost: 0, stats: { focus: 1, efficiency: 1 }
   },
 
   // --- NORTH: CREATION (Deep Work, Flow) ---
-  { 
-    id: 'n1', name: 'Gem Polish', description: '+5% XP from Admin Tasks.', icon: 'Sparkles', type: 'MINOR', 
-    x: 0, y: -150, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { resonance: 5 } 
+  {
+    id: 'n1', name: 'Gem Polish', description: '+5% XP from Admin Tasks.', icon: 'Sparkles', type: 'MINOR',
+    x: 0, y: -150, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { resonance: 5 }
   },
-  { 
-    id: 'n2', name: 'Flow Trigger', description: 'Easier to enter deep work.', icon: 'Waves', type: 'MINOR', 
-    x: 0, y: -300, unlocked: false, cost: 150, prerequisiteId: 'n1', stats: { focus: 5 } 
+  {
+    id: 'n2', name: 'Flow Trigger', description: 'Easier to enter deep work.', icon: 'Waves', type: 'MINOR',
+    x: 0, y: -300, unlocked: false, cost: 150, prerequisiteId: 'n1', stats: { focus: 5 }
   },
-  { 
-    id: 'n_major_1', name: 'The Silas Lock', description: 'Unlocks Task Locking mechanism.', icon: 'Lock', type: 'MAJOR', 
-    x: 0, y: -500, unlocked: false, cost: 400, prerequisiteId: 'n2', effectType: 'UNLOCK_FEATURE', featureId: 'lock_task' 
+  {
+    id: 'n_major_1', name: 'The Silas Lock', description: 'Unlocks Task Locking mechanism.', icon: 'Lock', type: 'MAJOR',
+    x: 0, y: -500, unlocked: false, cost: 400, prerequisiteId: 'n2', effectType: 'UNLOCK_FEATURE', featureId: 'lock_task'
   },
-  { 
-    id: 'n_keystone', name: "The Monk's Vow", description: 'Double XP/Focus. Social Tab Disabled until 2PM.', icon: 'Crown', type: 'KEYSTONE', 
-    x: 0, y: -750, unlocked: false, cost: 1000, prerequisiteId: 'n_major_1', 
-    tradeOff: 'Cannot access Email/Socials until 14:00.', effectType: 'GAME_RULE' 
+  {
+    id: 'n_keystone', name: "The Monk's Vow", description: 'Double XP/Focus. Social Tab Disabled until 2PM.', icon: 'Crown', type: 'KEYSTONE',
+    x: 0, y: -750, unlocked: false, cost: 1000, prerequisiteId: 'n_major_1',
+    tradeOff: 'Cannot access Email/Socials until 14:00.', effectType: 'GAME_RULE'
   },
 
   // --- EAST: ORDER (Systems, Admin) ---
-  { 
-    id: 'e1', name: 'Pocket Dimension', description: 'Task Log Capacity +1.', icon: 'Briefcase', type: 'MINOR', 
-    x: 150, y: 0, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { efficiency: 5 } 
+  {
+    id: 'e1', name: 'Pocket Dimension', description: 'Task Log Capacity +1.', icon: 'Briefcase', type: 'MINOR',
+    x: 150, y: 0, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { efficiency: 5 }
   },
-  { 
-    id: 'e2', name: 'Ledger Keeper', description: 'Reduced Mana cost for neutral tasks.', icon: 'Book', type: 'MINOR', 
-    x: 300, y: 0, unlocked: false, cost: 150, prerequisiteId: 'e1', stats: { efficiency: 10 } 
+  {
+    id: 'e2', name: 'Ledger Keeper', description: 'Reduced Mana cost for neutral tasks.', icon: 'Book', type: 'MINOR',
+    x: 300, y: 0, unlocked: false, cost: 150, prerequisiteId: 'e1', stats: { efficiency: 10 }
   },
-  { 
-    id: 'e_major_1', name: 'Echoes of Past', description: 'Unlocks History View.', icon: 'History', type: 'MAJOR', 
-    x: 500, y: 0, unlocked: false, cost: 400, prerequisiteId: 'e2', effectType: 'UNLOCK_FEATURE', featureId: 'history_view' 
+  {
+    id: 'e_major_1', name: 'Echoes of Past', description: 'Unlocks History View.', icon: 'History', type: 'MAJOR',
+    x: 500, y: 0, unlocked: false, cost: 400, prerequisiteId: 'e2', effectType: 'UNLOCK_FEATURE', featureId: 'history_view'
   },
-  { 
-    id: 'e_keystone', name: "Delegator's Pact", description: '300% XP for Reviewing. 0% for Doing.', icon: 'Users', type: 'KEYSTONE', 
-    x: 750, y: 0, unlocked: false, cost: 1000, prerequisiteId: 'e_major_1', 
-    tradeOff: 'You gain 0 XP for completing neutral tasks yourself.', effectType: 'GAME_RULE' 
+  {
+    id: 'e_keystone', name: "Delegator's Pact", description: '300% XP for Reviewing. 0% for Doing.', icon: 'Users', type: 'KEYSTONE',
+    x: 750, y: 0, unlocked: false, cost: 1000, prerequisiteId: 'e_major_1',
+    tradeOff: 'You gain 0 XP for completing neutral tasks yourself.', effectType: 'GAME_RULE'
   },
 
   // --- SOUTH: VITALITY (Health, Sleep) ---
-  { 
-    id: 's1', name: 'Extended Breath', description: 'Forgiveness Buffer +1.', icon: 'Activity', type: 'MINOR', 
-    x: 0, y: 150, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { efficiency: 2 } 
+  {
+    id: 's1', name: 'Extended Breath', description: 'Forgiveness Buffer +1.', icon: 'Activity', type: 'MINOR',
+    x: 0, y: 150, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { efficiency: 2 }
   },
-  { 
-    id: 's2', name: 'Rooted Stance', description: 'Energy drain reduced by 10%.', icon: 'Anchor', type: 'MINOR', 
-    x: 0, y: 300, unlocked: false, cost: 150, prerequisiteId: 's1', stats: { efficiency: 10 } 
+  {
+    id: 's2', name: 'Rooted Stance', description: 'Energy drain reduced by 10%.', icon: 'Anchor', type: 'MINOR',
+    x: 0, y: 300, unlocked: false, cost: 150, prerequisiteId: 's1', stats: { efficiency: 10 }
   },
 
   // --- WEST: CONNECTION (Sales, Social) ---
-  { 
-    id: 'w1', name: 'Open Ear', description: 'Better rewards for social quests.', icon: 'Ear', type: 'MINOR', 
-    x: -150, y: 0, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { quality: 1.05 } 
+  {
+    id: 'w1', name: 'Open Ear', description: 'Better rewards for social quests.', icon: 'Ear', type: 'MINOR',
+    x: -150, y: 0, unlocked: false, cost: 100, prerequisiteId: 'source', stats: { quality: 1.05 }
   },
-  { 
-    id: 'w2', name: 'Silver Tongue', description: 'High charisma output.', icon: 'Feather', type: 'MINOR', 
-    x: -300, y: 0, unlocked: false, cost: 150, prerequisiteId: 'w1', stats: { quality: 1.1 } 
+  {
+    id: 'w2', name: 'Silver Tongue', description: 'High charisma output.', icon: 'Feather', type: 'MINOR',
+    x: -300, y: 0, unlocked: false, cost: 150, prerequisiteId: 'w1', stats: { quality: 1.1 }
   },
-  { 
-    id: 'w_major_1', name: "Merchant's Ear", description: 'Custom notification sounds.', icon: 'Music', type: 'MAJOR', 
-    x: -500, y: 0, unlocked: false, cost: 400, prerequisiteId: 'w2', effectType: 'UNLOCK_FEATURE', featureId: 'custom_sounds' 
+  {
+    id: 'w_major_1', name: "Merchant's Ear", description: 'Custom notification sounds.', icon: 'Music', type: 'MAJOR',
+    x: -500, y: 0, unlocked: false, cost: 400, prerequisiteId: 'w2', effectType: 'UNLOCK_FEATURE', featureId: 'custom_sounds'
   },
 
   // --- HYBRID: ADRENALINE ENGINE (North-East) ---
-  { 
-    id: 'ne1', name: 'Rapid Fire', description: 'Speed +10%.', icon: 'Zap', type: 'MINOR', 
-    x: 200, y: -200, unlocked: false, cost: 250, prerequisiteId: 'n1', stats: { efficiency: 5, focus: 5 } 
+  {
+    id: 'ne1', name: 'Rapid Fire', description: 'Speed +10%.', icon: 'Zap', type: 'MINOR',
+    x: 200, y: -200, unlocked: false, cost: 250, prerequisiteId: 'n1', stats: { efficiency: 5, focus: 5 }
   },
-  { 
-    id: 'ne_keystone', name: "Adrenaline Engine", description: 'Activate Crunch Mode (Infinite Mana).', icon: 'FastForward', type: 'KEYSTONE', 
-    x: 400, y: -400, unlocked: false, cost: 1500, prerequisiteId: 'ne1', 
-    tradeOff: 'Next day locked in Recovery Mode (Max 3 Tasks).', effectType: 'GAME_RULE' 
+  {
+    id: 'ne_keystone', name: "Adrenaline Engine", description: 'Activate Crunch Mode (Infinite Mana).', icon: 'FastForward', type: 'KEYSTONE',
+    x: 400, y: -400, unlocked: false, cost: 1500, prerequisiteId: 'ne1',
+    tradeOff: 'Next day locked in Recovery Mode (Max 3 Tasks).', effectType: 'GAME_RULE'
   },
 ];
 

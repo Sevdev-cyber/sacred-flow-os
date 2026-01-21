@@ -8,12 +8,18 @@ import Inventory from './components/Inventory';
 import LoreSection from './components/LoreSection';
 import SanctuaryMode from './components/SanctuaryMode';
 import CharacterCreation from './components/CharacterCreation';
-import BreathingExercise from './components/BreathingExercise'; // New Component
-import { Character, Task, SkillNode, InventoryItem, QuestType, EquipmentSlot, UISettings, Archetype } from './types';
+import BreathingExercise from './components/BreathingExercise';
+// Phase 1: New Feature Components
+import PotionOfMomentum from './components/PotionOfMomentum';
+import OracleCompass from './components/OracleCompass';
+import TransmutationFire from './components/TransmutationFire';
+import NebulaOfIdeas from './components/NebulaOfIdeas';
+import HallOfEchoes from './components/HallOfEchoes';
+import { Character, Task, SkillNode, InventoryItem, QuestType, EquipmentSlot, UISettings, Archetype, Idea, Worry, CompletedBossTask } from './types';
 import { INITIAL_CHARACTER, INITIAL_SKILLS, ARCHETYPE_STATS, COLORS } from './constants';
 import { getXpToNextLevel, calculateRewards } from './utils/vibrationLogic';
 import { getGuidance, bindRealWorldItemWithAI, generateItemImage, generateLootForTask, fuseItemsWithAI } from './services/geminiService';
-import { BarChart3, Waves, Book, Activity, Sparkles, X, TrendingUp, Target, Brain, Globe, Users, Trophy, Settings, Merge } from 'lucide-react';
+import { BarChart3, Waves, Book, Activity, Sparkles, X, TrendingUp, Target, Brain, Globe, Users, Trophy, Settings, Merge, Compass, Flame, Lightbulb } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -21,20 +27,20 @@ const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [skills, setSkills] = useState<SkillNode[]>(INITIAL_SKILLS);
   const [inventory, setInventory] = useState<InventoryItem[]>([
-    { 
-      id: 'rel1', 
-      name: 'Crystal Harp', 
-      rarity: 'LEGENDARY', 
-      description: 'Enhances creative focus. +25% Mana gain.', 
-      icon: 'Music', 
+    {
+      id: 'rel1',
+      name: 'Crystal Harp',
+      rarity: 'LEGENDARY',
+      description: 'Enhances creative focus. +25% Mana gain.',
+      icon: 'Music',
       slot: EquipmentSlot.WEAPON,
       stats: { focus: 25, resonance: 10 }
     },
-    { 
-      id: 'rel2', 
-      name: 'Alchemist M1', 
-      rarity: 'RELIC', 
-      description: 'The core processor of your reality. +20% Efficiency.', 
+    {
+      id: 'rel2',
+      name: 'Alchemist M1',
+      rarity: 'RELIC',
+      description: 'The core processor of your reality. +20% Efficiency.',
       icon: 'Zap',
       slot: EquipmentSlot.RELIC,
       stats: { efficiency: 20, resonance: 15 }
@@ -57,6 +63,12 @@ const App: React.FC = () => {
   const [latestLoot, setLatestLoot] = useState<any>(null);
   const [hasNewItems, setHasNewItems] = useState(false);
   const [fusing, setFusing] = useState(false);
+  // Phase 1: Feature modal states
+  const [showOracleCompass, setShowOracleCompass] = useState(false);
+  const [showTransmutationFire, setShowTransmutationFire] = useState(false);
+  const [showNebulaOfIdeas, setShowNebulaOfIdeas] = useState(false);
+  const [showHallOfEchoes, setShowHallOfEchoes] = useState(false);
+  const [trustBuffTaskId, setTrustBuffTaskId] = useState<string | null>(null);
 
   // Keystone Unlocked Features
   // Updated to use featureId check
@@ -74,7 +86,7 @@ const App: React.FC = () => {
     const generateInitialVisuals = async () => {
       // Filter for initial items that lack images
       const itemsNeedingImages = inventory.filter(i => !i.imageUrl && !i.realWorldCounterpart);
-      
+
       for (const item of itemsNeedingImages) {
         // Generate image for each item
         generateItemImage(item.name, item.description).then(url => {
@@ -84,10 +96,10 @@ const App: React.FC = () => {
         });
       }
     };
-    
+
     // Only trigger if we have un-imaged items to avoid unnecessary API calls on re-renders
     if (inventory.some(i => !i.imageUrl)) {
-       generateInitialVisuals();
+      generateInitialVisuals();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -98,11 +110,11 @@ const App: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       if (!lastDateStr) { setChar(prev => ({ ...prev, lastActiveDate: today })); return; }
       if (lastDateStr === today) return;
-      
+
       // If Twilight Mode is active, streak is FROZEN (no penalty)
       if (char.settings.twilightMode) {
-          setChar(prev => ({ ...prev, lastActiveDate: today })); 
-          return;
+        setChar(prev => ({ ...prev, lastActiveDate: today }));
+        return;
       }
 
       const lastDate = new Date(lastDateStr);
@@ -162,70 +174,70 @@ const App: React.FC = () => {
     const finalRewards = calculateRewards(task.difficulty, task.urgency, task.type, task.category, unlocked, char, inFlow);
 
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, isCompleted: true, rewards: finalRewards } : t));
-    
+
     // Dynamic Loot Logic
     if (task.type === QuestType.BOSS || task.type === QuestType.MAIN) {
       if (!task.loot) {
         setGuidance("The cosmos is weaving a reward for your triumph...");
         generateLootForTask(task.title, task.category, task.difficulty).then(newLoot => {
-            if (newLoot) {
-               const guessedSlot = Object.values(EquipmentSlot).find(s => newLoot.slot === s) || EquipmentSlot.ACCESSORY;
-               const newItem: InventoryItem = {
-                  id: Math.random().toString(36).substr(2, 9),
-                  name: newLoot.name,
-                  rarity: newLoot.rarity,
-                  description: newLoot.description,
-                  icon: 'Sparkles',
-                  slot: guessedSlot,
-                  stats: newLoot.stats
-               };
-               setInventory(prev => [...prev, newItem]);
-               setHasNewItems(true);
-               setLatestLoot({ ...newLoot, type: 'ITEM' }); // Trigger modal
-               generateItemImage(newItem.name, newItem.description).then(url => {
-                 if (url) {
-                   setInventory(prev => prev.map(i => i.id === newItem.id ? { ...i, imageUrl: url } : i));
-                 }
-               });
-            }
-        });
-      } else if (task.loot) {
-          if (task.loot.type === 'ITEM') {
-            const guessedSlot = Object.values(EquipmentSlot).find(s => task.loot!.name.includes(s)) || EquipmentSlot.ACCESSORY;
+          if (newLoot) {
+            const guessedSlot = Object.values(EquipmentSlot).find(s => newLoot.slot === s) || EquipmentSlot.ACCESSORY;
             const newItem: InventoryItem = {
               id: Math.random().toString(36).substr(2, 9),
-              name: task.loot!.name,
-              rarity: 'RARE',
-              description: task.loot!.description,
+              name: newLoot.name,
+              rarity: newLoot.rarity,
+              description: newLoot.description,
               icon: 'Sparkles',
               slot: guessedSlot,
-              stats: { resonance: 5, quality: 1.05 }
+              stats: newLoot.stats
             };
             setInventory(prev => [...prev, newItem]);
-            setHasNewItems(true); 
+            setHasNewItems(true);
+            setLatestLoot({ ...newLoot, type: 'ITEM' }); // Trigger modal
             generateItemImage(newItem.name, newItem.description).then(url => {
               if (url) {
                 setInventory(prev => prev.map(i => i.id === newItem.id ? { ...i, imageUrl: url } : i));
               }
             });
-          } else if (task.loot.type === 'LORE') {
-            setChar(prev => ({ ...prev, loreUnlocked: [...prev.loreUnlocked, task.loot!.name + ": " + task.loot!.description] }));
           }
-          setLatestLoot(task.loot);
+        });
+      } else if (task.loot) {
+        if (task.loot.type === 'ITEM') {
+          const guessedSlot = Object.values(EquipmentSlot).find(s => task.loot!.name.includes(s)) || EquipmentSlot.ACCESSORY;
+          const newItem: InventoryItem = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: task.loot!.name,
+            rarity: 'RARE',
+            description: task.loot!.description,
+            icon: 'Sparkles',
+            slot: guessedSlot,
+            stats: { resonance: 5, quality: 1.05 }
+          };
+          setInventory(prev => [...prev, newItem]);
+          setHasNewItems(true);
+          generateItemImage(newItem.name, newItem.description).then(url => {
+            if (url) {
+              setInventory(prev => prev.map(i => i.id === newItem.id ? { ...i, imageUrl: url } : i));
+            }
+          });
+        } else if (task.loot.type === 'LORE') {
+          setChar(prev => ({ ...prev, loreUnlocked: [...prev.loreUnlocked, task.loot!.name + ": " + task.loot!.description] }));
+        }
+        setLatestLoot(task.loot);
       }
     }
 
     setChar(prev => {
       const today = new Date().toISOString().split('T')[0];
       const isNewDayStreak = prev.lastActiveDate !== today;
-      
+
       // Twilight Mode Logic
       if (prev.settings.twilightMode) {
-          return {
-              ...prev,
-              embers: prev.embers + Math.round(finalRewards.vibration / 10), // Earn Embers not XP
-              lastActiveDate: today
-          };
+        return {
+          ...prev,
+          embers: prev.embers + Math.round(finalRewards.vibration / 10), // Earn Embers not XP
+          lastActiveDate: today
+        };
       }
 
       // Normal Mode Logic
@@ -238,12 +250,12 @@ const App: React.FC = () => {
       // Ledger Logic (Alchemist)
       let newTransmutationCount = prev.transmutationCount;
       let newGoldRush = prev.goldRushActive;
-      
+
       if (task.category === 'NEUTRAL') {
-          newTransmutationCount += 1;
-          if (newTransmutationCount % 3 === 0) newGoldRush = true;
+        newTransmutationCount += 1;
+        if (newTransmutationCount % 3 === 0) newGoldRush = true;
       } else {
-          newGoldRush = false; // Reset streak if non-neutral task done? Or keep it? Let's keep it simple.
+        newGoldRush = false; // Reset streak if non-neutral task done? Or keep it? Let's keep it simple.
       }
 
       while (newXp >= nextXp) {
@@ -252,18 +264,18 @@ const App: React.FC = () => {
         nextXp = getXpToNextLevel(newLevel);
       }
 
-      return { 
-          ...prev, 
-          level: newLevel, 
-          xp: newXp, 
-          nextLevelXp: nextXp, 
-          vibration: newVibration, 
-          mana: prev.mana + finalRewards.mana, 
-          energy: prev.energy + finalRewards.energy, 
-          streak: newStreak, 
-          lastActiveDate: today,
-          transmutationCount: newTransmutationCount,
-          goldRushActive: newGoldRush
+      return {
+        ...prev,
+        level: newLevel,
+        xp: newXp,
+        nextLevelXp: nextXp,
+        vibration: newVibration,
+        mana: prev.mana + finalRewards.mana,
+        energy: prev.energy + finalRewards.energy,
+        streak: newStreak,
+        lastActiveDate: today,
+        transmutationCount: newTransmutationCount,
+        goldRushActive: newGoldRush
       };
     });
   };
@@ -284,9 +296,9 @@ const App: React.FC = () => {
     const aiStatsPromise = bindRealWorldItemWithAI(item.name, realName);
     const aiImagePromise = generateItemImage(`${item.name} merged with ${realName}`, item.description);
     const [aiStats, aiImage] = await Promise.all([aiStatsPromise, aiImagePromise]);
-    setInventory(prev => prev.map(i => i.id === item.id ? { 
-      ...i, 
-      realWorldCounterpart: realName, 
+    setInventory(prev => prev.map(i => i.id === item.id ? {
+      ...i,
+      realWorldCounterpart: realName,
       stats: aiStats,
       imageUrl: aiImage || i.imageUrl
     } : i));
@@ -305,9 +317,9 @@ const App: React.FC = () => {
 
     setFusing(true);
     setGuidance(`Merging ${item1.name} and ${item2.name}... The Alchemist is working.`);
-    
+
     const fusedItem = await fuseItemsWithAI(item1, item2);
-    
+
     if (fusedItem) {
       const newItem: InventoryItem = {
         id: Math.random().toString(36).substr(2, 9),
@@ -331,12 +343,12 @@ const App: React.FC = () => {
       generateItemImage(newItem.name, newItem.description).then(url => {
         if (url) setInventory(prev => prev.map(i => i.id === newItem.id ? { ...i, imageUrl: url } : i));
       });
-      setLatestLoot({ ...fusedItem, type: 'ITEM' }); 
+      setLatestLoot({ ...fusedItem, type: 'ITEM' });
       setGuidance("Fusion Complete. A new artifact is born.");
     } else {
-       // Refund if fusion fails (API error)
-       setChar(prev => ({ ...prev, mana: prev.mana + FUSION_COST }));
-       setGuidance("The Alchemical process failed. Mana restored.");
+      // Refund if fusion fails (API error)
+      setChar(prev => ({ ...prev, mana: prev.mana + FUSION_COST }));
+      setGuidance("The Alchemical process failed. Mana restored.");
     }
     setFusing(false);
   };
@@ -350,7 +362,7 @@ const App: React.FC = () => {
   const unlockSkill = (skillId: string) => {
     const skill = skills.find(s => s.id === skillId);
     if (!skill || skill.unlocked || char.vibration < skill.cost) return; // Check Vibration cost
-    
+
     const newStats = { ...char.baseStats };
     if (skill.stats) {
       if (skill.stats.focus) newStats.focus += skill.stats.focus;
@@ -360,12 +372,12 @@ const App: React.FC = () => {
     }
 
     setSkills(prev => prev.map(s => s.id === skillId ? { ...s, unlocked: true } : s));
-    
+
     // Deduct Vibration
-    setChar(prev => ({ 
-        ...prev, 
-        vibration: prev.vibration - skill.cost, 
-        baseStats: newStats 
+    setChar(prev => ({
+      ...prev,
+      vibration: prev.vibration - skill.cost,
+      baseStats: newStats
     }));
   };
 
@@ -389,10 +401,10 @@ const App: React.FC = () => {
   };
 
   const toggleTwilightMode = () => {
-     setChar(prev => ({
-         ...prev,
-         settings: { ...prev.settings, twilightMode: !prev.settings.twilightMode }
-     }));
+    setChar(prev => ({
+      ...prev,
+      settings: { ...prev.settings, twilightMode: !prev.settings.twilightMode }
+    }));
   };
 
   const updateSettings = (updates: Partial<UISettings>) => {
@@ -400,6 +412,117 @@ const App: React.FC = () => {
       ...prev,
       settings: { ...prev.settings, ...updates }
     }));
+  };
+
+  // ============================================
+  // PHASE 1: Feature Expansion Handlers
+  // ============================================
+
+  // Potion of Momentum
+  const activatePotion = (microTask: string) => {
+    const now = new Date().toISOString();
+    const endTime = Date.now() + 5 * 60 * 1000; // 5 minutes
+    setChar(prev => ({
+      ...prev,
+      lastPotionUse: now,
+      microQuestActive: true,
+      microQuestTask: microTask,
+      microQuestEndTime: endTime
+    }));
+    setGuidance(`Micro-Quest activated! Complete "${microTask}" in 5 minutes for 3x XP!`);
+  };
+
+  const completeMicroQuest = () => {
+    // Award 3x XP bonus (base 50 XP * 3 = 150)
+    const bonusXp = 150;
+    setChar(prev => ({
+      ...prev,
+      microQuestActive: false,
+      microQuestTask: null,
+      microQuestEndTime: null,
+      vibration: prev.vibration + bonusXp,
+      xp: prev.xp + bonusXp
+    }));
+    setGuidance(`CRITICAL SUCCESS! +${bonusXp} Vibration from your micro-quest!`);
+  };
+
+  const cancelMicroQuest = () => {
+    setChar(prev => ({
+      ...prev,
+      microQuestActive: false,
+      microQuestTask: null,
+      microQuestEndTime: null
+    }));
+  };
+
+  // Nebula of Ideas
+  const addIdea = (text: string) => {
+    const newIdea: Idea = {
+      id: Math.random().toString(36).substr(2, 9),
+      text,
+      createdAt: Date.now(),
+      color: ['purple', 'blue', 'emerald', 'amber', 'rose'][Math.floor(Math.random() * 5)]
+    };
+    setChar(prev => ({
+      ...prev,
+      nebulaIdeas: [...prev.nebulaIdeas, newIdea]
+    }));
+  };
+
+  const harvestIdea = (ideaId: string) => {
+    const idea = char.nebulaIdeas.find(i => i.id === ideaId);
+    if (!idea) return;
+
+    // Create a new task from the idea
+    const newTask: Task = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: idea.text,
+      description: 'Harvested from the Nebula of Ideas',
+      type: QuestType.SIDE,
+      category: 'CREATIVE',
+      difficulty: 3,
+      urgency: 3,
+      isCompleted: false,
+      rewards: calculateRewards(3, 3, QuestType.SIDE, 'CREATIVE', skills.filter(s => s.unlocked), char),
+      createdAt: Date.now()
+    };
+
+    setTasks(prev => [newTask, ...prev]);
+    setChar(prev => ({
+      ...prev,
+      nebulaIdeas: prev.nebulaIdeas.filter(i => i.id !== ideaId)
+    }));
+    setGuidance(`Idea "${idea.text.slice(0, 30)}..." harvested into a Quest!`);
+  };
+
+  const dissolveIdea = (ideaId: string) => {
+    setChar(prev => ({
+      ...prev,
+      nebulaIdeas: prev.nebulaIdeas.filter(i => i.id !== ideaId),
+      mana: prev.mana + 5 // Small Mana return
+    }));
+  };
+
+  // Transmutation Fire
+  const burnWorry = (text: string) => {
+    const newWorry: Worry = {
+      id: Math.random().toString(36).substr(2, 9),
+      text,
+      burnedAt: Date.now()
+    };
+    setChar(prev => ({
+      ...prev,
+      worryLog: [...prev.worryLog, newWorry],
+      resilienceXp: prev.resilienceXp + 5
+    }));
+    setGuidance(`Worry transmuted. +5 Resilience XP. Let it go.`);
+  };
+
+  // Oracle Compass
+  const acceptOracleChoice = (taskId: string) => {
+    setTrustBuffTaskId(taskId);
+    setShowOracleCompass(false);
+    setGuidance(`Trust Buff active! Complete this quest for +10% bonus XP.`);
   };
 
   const handleCharacterCreation = (name: string, archetype: Archetype, backstory: string) => {
@@ -415,7 +538,7 @@ const App: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'inventory') {
-      setHasNewItems(false); 
+      setHasNewItems(false);
     }
   };
 
@@ -423,21 +546,58 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard': return (
         <div className="space-y-6">
-          <Dashboard 
-            char={char} 
-            guidance={guidance} 
-            onSpendEnergy={spendEnergy} 
-            onToggleBattleMode={toggleBattleMode} 
-            onActivateSanctuary={() => toggleSanctuaryMode()} 
+          <Dashboard
+            char={char}
+            guidance={guidance}
+            onSpendEnergy={spendEnergy}
+            onToggleBattleMode={toggleBattleMode}
+            onActivateSanctuary={() => toggleSanctuaryMode()}
             onToggleTwilight={toggleTwilightMode}
           />
-          <div className="flex justify-center mt-4">
-             <button 
-                onClick={() => setShowBreathing(true)}
-                className="bg-white/5 hover:bg-white/10 text-slate-300 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-white/5"
-             >
-                <Waves size={16} /> Quick Breath
-             </button>
+
+          {/* Phase 1: Potion of Momentum */}
+          <PotionOfMomentum
+            lastPotionUse={char.lastPotionUse}
+            microQuestActive={char.microQuestActive}
+            microQuestTask={char.microQuestTask}
+            microQuestEndTime={char.microQuestEndTime}
+            onActivate={activatePotion}
+            onComplete={completeMicroQuest}
+            onCancel={cancelMicroQuest}
+          />
+
+          <div className="flex justify-center gap-3 mt-4 flex-wrap">
+            <button
+              onClick={() => setShowBreathing(true)}
+              className="bg-white/5 hover:bg-white/10 text-slate-300 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-white/5"
+            >
+              <Waves size={16} /> Quick Breath
+            </button>
+            {/* Phase 1: Feature Access Buttons */}
+            <button
+              onClick={() => setShowOracleCompass(true)}
+              className="bg-purple-900/20 hover:bg-purple-900/40 text-purple-400 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-purple-500/30"
+            >
+              <Compass size={16} /> Oracle
+            </button>
+            <button
+              onClick={() => setShowTransmutationFire(true)}
+              className="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-orange-500/30"
+            >
+              <Flame size={16} /> Fire
+            </button>
+            <button
+              onClick={() => setShowNebulaOfIdeas(true)}
+              className="bg-indigo-900/20 hover:bg-indigo-900/40 text-indigo-400 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-indigo-500/30"
+            >
+              <Lightbulb size={16} /> Nebula ({char.nebulaIdeas.length})
+            </button>
+            <button
+              onClick={() => setShowHallOfEchoes(true)}
+              className="bg-amber-900/20 hover:bg-amber-900/40 text-amber-400 px-6 py-3 rounded-2xl flex items-center gap-2 transition-all font-bold text-xs uppercase tracking-widest border border-amber-500/30"
+            >
+              <Trophy size={16} /> Hall ({char.completedBossTasks.length})
+            </button>
           </div>
           {!char.settings.battleMode && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -451,28 +611,28 @@ const App: React.FC = () => {
         </div>
       );
       case 'quests': return (
-         <QuestLog 
-            tasks={tasks} 
-            skills={skills} 
-            character={char} 
-            onAddTask={addTask} 
-            onCompleteTask={completeTask} 
-            onDeleteTask={deleteTask} 
-            onFailTask={failTask} 
-            goldRushMode={char.goldRushActive}
-            isTwilightMode={char.settings.twilightMode}
-         />
+        <QuestLog
+          tasks={tasks}
+          skills={skills}
+          character={char}
+          onAddTask={addTask}
+          onCompleteTask={completeTask}
+          onDeleteTask={deleteTask}
+          onFailTask={failTask}
+          goldRushMode={char.goldRushActive}
+          isTwilightMode={char.settings.twilightMode}
+        />
       );
       case 'skills': return <SkillTree skills={skills} onUnlock={unlockSkill} vibration={char.vibration} />;
       case 'inventory': return (
-         <Inventory 
-           items={inventory} 
-           character={char} 
-           onEquip={equipItem} 
-           onRegisterRealWorld={registerRealWorldItem} 
-           onFuse={handleItemFusion}
-           lore={char.loreUnlocked} 
-         />
+        <Inventory
+          items={inventory}
+          character={char}
+          onEquip={equipItem}
+          onRegisterRealWorld={registerRealWorldItem}
+          onFuse={handleItemFusion}
+          lore={char.loreUnlocked}
+        />
       );
       case 'spec': return <LoreSection />;
       default: return <Dashboard char={char} guidance={guidance} onSpendEnergy={spendEnergy} onToggleBattleMode={toggleBattleMode} onActivateSanctuary={() => toggleSanctuaryMode()} onToggleTwilight={toggleTwilightMode} />;
@@ -498,51 +658,85 @@ const App: React.FC = () => {
           {/* Fusion / Loot Loading State */}
           {fusing && (
             <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 bg-black/90 backdrop-blur-md">
-               <Merge size={64} className="text-purple-500 animate-pulse mb-6" />
-               <h2 className="text-2xl font-black text-white uppercase tracking-widest animate-bounce">Alchemizing...</h2>
+              <Merge size={64} className="text-purple-500 animate-pulse mb-6" />
+              <h2 className="text-2xl font-black text-white uppercase tracking-widest animate-bounce">Alchemizing...</h2>
             </div>
           )}
 
           {latestLoot && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in zoom-in-95">
               <div className="bg-[#050a06] border-2 border-amber-500/40 p-10 rounded-[3rem] text-center max-w-sm relative shadow-[0_0_50px_rgba(245,158,11,0.2)]">
-                  <Trophy size={64} className="text-amber-500 mx-auto mb-6" />
-                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Divine Loot Drop!</h2>
-                  <div className="bg-amber-500/10 p-4 rounded-2xl mb-6">
-                    <h3 className="font-bold text-amber-500">{latestLoot.name}</h3>
-                    <p className="text-xs text-amber-500/60 mt-1 dyslexic-friendly">{latestLoot.description}</p>
-                    {latestLoot.type === 'ITEM' && <p className="text-[10px] font-black uppercase text-amber-500/40 mt-3">Manifesting Visual Essence...</p>}
-                  </div>
-                  <button onClick={() => setLatestLoot(null)} className="w-full bg-amber-500 text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs">Enshrine in Satchel</button>
+                <Trophy size={64} className="text-amber-500 mx-auto mb-6" />
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Divine Loot Drop!</h2>
+                <div className="bg-amber-500/10 p-4 rounded-2xl mb-6">
+                  <h3 className="font-bold text-amber-500">{latestLoot.name}</h3>
+                  <p className="text-xs text-amber-500/60 mt-1 dyslexic-friendly">{latestLoot.description}</p>
+                  {latestLoot.type === 'ITEM' && <p className="text-[10px] font-black uppercase text-amber-500/40 mt-3">Manifesting Visual Essence...</p>}
+                </div>
+                <button onClick={() => setLatestLoot(null)} className="w-full bg-amber-500 text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs">Enshrine in Satchel</button>
               </div>
             </div>
           )}
 
           {showSettings && (
-            <Modal onClose={() => setShowSettings(false)} title="Sanctum Tuning" subtitle="Accessibility & Visuals" icon={<Settings className="text-slate-400" size={32}/>} accentColor="border-white/10">
+            <Modal onClose={() => setShowSettings(false)} title="Sanctum Tuning" subtitle="Accessibility & Visuals" icon={<Settings className="text-slate-400" size={32} />} accentColor="border-white/10">
               <div className="space-y-6">
-                <ToggleRow 
-                  label="Bionic Reading" 
-                  desc="Bolds initial letters for faster processing." 
-                  active={char.settings.bionicReading} 
+                <ToggleRow
+                  label="Bionic Reading"
+                  desc="Bolds initial letters for faster processing."
+                  active={char.settings.bionicReading}
                   onToggle={() => updateSettings({ bionicReading: !char.settings.bionicReading })}
                 />
-                <ToggleRow 
-                  label="High Juice Effects" 
-                  desc="Enables particles and screen shake on completion." 
-                  active={char.settings.highJuice} 
+                <ToggleRow
+                  label="High Juice Effects"
+                  desc="Enables particles and screen shake on completion."
+                  active={char.settings.highJuice}
                   onToggle={() => updateSettings({ highJuice: !char.settings.highJuice })}
                 />
               </div>
             </Modal>
           )}
 
-          {showAnalytics && <Modal onClose={() => setShowAnalytics(false)} title="Command" subtitle="Analytics" icon={<BarChart3 className="text-amber-500" size={32}/>} accentColor="border-amber-500/20">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"><AnalyticsCard icon={<TrendingUp size={20}/>} label="Vibe Velocity" value={char.vibration} trend="+12%" color="text-amber-500" /><AnalyticsCard icon={<Brain size={20}/>} label="Deep Depth" value="84%" trend="Opt" color="text-blue-400" /><AnalyticsCard icon={<Target size={20}/>} label="Quest Success" value="92%" trend="High" color="text-emerald-400" /></div>
+          {showAnalytics && <Modal onClose={() => setShowAnalytics(false)} title="Command" subtitle="Analytics" icon={<BarChart3 className="text-amber-500" size={32} />} accentColor="border-amber-500/20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"><AnalyticsCard icon={<TrendingUp size={20} />} label="Vibe Velocity" value={char.vibration} trend="+12%" color="text-amber-500" /><AnalyticsCard icon={<Brain size={20} />} label="Deep Depth" value="84%" trend="Opt" color="text-blue-400" /><AnalyticsCard icon={<Target size={20} />} label="Quest Success" value="92%" trend="High" color="text-emerald-400" /></div>
           </Modal>}
-          {showLedger && <Modal onClose={() => setShowLedger(false)} title="The Ledger" subtitle="Impact" icon={<Globe className="text-emerald-500" size={32}/>} accentColor="border-emerald-500/20">
+          {showLedger && <Modal onClose={() => setShowLedger(false)} title="The Ledger" subtitle="Impact" icon={<Globe className="text-emerald-500" size={32} />} accentColor="border-emerald-500/20">
             <div className="bg-emerald-900/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between"><div className="flex items-center gap-4"><Users className="text-emerald-400" /><div><h4 className="font-bold text-white">Community Resonance</h4><p className="text-xs text-white/40">Bridge tasks completed</p></div></div><span className="text-4xl font-black text-emerald-400">12</span></div>
           </Modal>}
+
+          {/* Phase 1: Feature Modals */}
+          {showOracleCompass && (
+            <OracleCompass
+              tasks={tasks}
+              onAccept={acceptOracleChoice}
+              onClose={() => setShowOracleCompass(false)}
+            />
+          )}
+
+          {showTransmutationFire && (
+            <TransmutationFire
+              worryLog={char.worryLog}
+              onBurnWorry={burnWorry}
+              onClose={() => setShowTransmutationFire(false)}
+            />
+          )}
+
+          {showNebulaOfIdeas && (
+            <NebulaOfIdeas
+              ideas={char.nebulaIdeas}
+              onAddIdea={addIdea}
+              onHarvestIdea={harvestIdea}
+              onDissolveIdea={dissolveIdea}
+              onClose={() => setShowNebulaOfIdeas(false)}
+            />
+          )}
+
+          {showHallOfEchoes && (
+            <HallOfEchoes
+              completedTasks={char.completedBossTasks}
+              onClose={() => setShowHallOfEchoes(false)}
+            />
+          )}
         </div>
       )}
     </Layout>

@@ -8,7 +8,7 @@ export enum QuestType {
 
 export type TaskCategory = 'CREATIVE' | 'PHYSICAL' | 'NEUTRAL';
 // SkillBranch is deprecated in favor of directional pathing, but kept for legacy type safety if needed temporarily
-export type SkillBranch = 'VISIONARY' | 'ALCHEMIST' | 'BRIDGE' | 'VITALITY'; 
+export type SkillBranch = 'VISIONARY' | 'ALCHEMIST' | 'BRIDGE' | 'VITALITY';
 export type Archetype = 'WEAVER' | 'WARDEN' | 'SCHOLAR';
 export type SkillType = 'MINOR' | 'MAJOR' | 'KEYSTONE';
 
@@ -79,6 +79,15 @@ export interface Character {
   transmutationCount: number;
   goldRushActive: boolean;
   embers: number;
+  // Phase 1: Feature expansion fields
+  lastPotionUse: string | null;
+  microQuestActive: boolean;
+  microQuestTask: string | null;
+  microQuestEndTime: number | null;
+  nebulaIdeas: Idea[];
+  worryLog: Worry[];
+  resilienceXp: number;
+  completedBossTasks: CompletedBossTask[];
 }
 
 export interface SkillNode {
@@ -87,19 +96,19 @@ export interface SkillNode {
   description: string;
   icon: string;
   type: SkillType;
-  
+
   // Coordinates for the Celestial Lattice
   x: number;
   y: number;
-  
+
   unlocked: boolean;
   cost: number; // Cost in Vibration
-  
+
   stats?: Partial<Stats>;
   tradeOff?: string; // For Keystones
-  
+
   prerequisiteId?: string; // Single parent for simple pathing, or array for complex
-  
+
   // Logic Effects
   effectType?: 'XP_BOOST' | 'MANA_BOOST' | 'ENERGY_BOOST' | 'UNLOCK_FEATURE' | 'GAME_RULE';
   effectValue?: number;
@@ -117,4 +126,25 @@ export interface InventoryItem {
   stats?: Partial<Stats>;
   realWorldCounterpart?: string;
   imageUrl?: string;
+}
+
+// Phase 1: New interfaces for expansion features
+export interface Idea {
+  id: string;
+  text: string;
+  createdAt: number;
+  color: string;
+}
+
+export interface Worry {
+  id: string;
+  text: string;
+  burnedAt: number;
+}
+
+export interface CompletedBossTask {
+  id: string;
+  title: string;
+  completedAt: number;
+  artUrl?: string;
 }
